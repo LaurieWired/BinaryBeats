@@ -3,6 +3,9 @@ from pydub.generators import Sine
 import simpleaudio as sa
 import io
 import time
+import sys
+import argparse
+import os
 
 g_major_notes = [
     'G0', 'A0', 'B0', 'C1', 'D1', 'E1', 'F#1/Gb1',
@@ -339,6 +342,10 @@ note_frequencies = {
     'C8': 4186.01, 'C#8/Db8': 4434.92, 'D8': 4698.63, 'D#8/Eb8': 4978.03, 'E8': 5274.04, 'F8': 5587.65, 'F#8/Gb8': 5919.91,
     'G8': 6271.93, 'G#8/Ab8': 6644.88, 'A8': 7040.00, 'A#8/Bb8': 7458.62, 'B8': 7902.13
 }
+
+# TODO add more supported files
+file_type_mapping = {'.apk': g_major_notes, '.exe': c_major_notes, '.md': a_minor_notes, '.ipa': e_minor_notes}
+
 start_ascii = 19
 end_ascii = 127
 note_names = list(note_frequencies.keys())
@@ -375,12 +382,28 @@ def play_frequency(frequency, duration=100):
     play_obj = wave_obj.play()
     play_obj.wait_done()
     
+parser = argparse.ArgumentParser(description='Process a file to play its bytes as musical notes.')
+parser.add_argument('file_path', type=str, help='Path to the file to be processed')
+args = parser.parse_args()
+file_path = args.file_path
 
-file_path = 'calc.exe'#'ControlFlowFlattening.ipa'
+# Check extension of passed in file and change key accordingly
+_, file_extension = os.path.splitext(file_path)
+file_extension = file_extension.lower()
+current_key = file_type_mapping.get(file_extension, c_major_notes)  # Default to C Major if not found
+
+print("Extension: " + file_extension)
+
+if current_key == g_major_notes:
+    print("Key: g major")
+elif current_key == c_major_notes:
+    print("Key: C major")
+elif current_key == a_minor_notes:
+    print("Key: a minor")
+elif current_key == e_minor_notes:
+    print("Key: e minor")
+
 read_file_bytes(file_path)
-
-# TODO: make the key configurable per sample
-current_key = b_minor_notes
 
 previous_note = file_notes[0]
 num_repeated_notes = 1
@@ -426,5 +449,32 @@ DLL
 .SO
 DEX
 ASM
+webassembly
+
+C Major - EXE files
+G Major - APK
+D Major
+A Major
+E Major
+B Major
+F# (Gb) Major
+Db (C#) Major
+Ab (G#) Major
+Eb (D#) Major
+Bb (A#) Major
+F Major
+
+A Minor - MD
+E Minor - IPA
+B Minor
+F# (Gb) Minor
+C# (Db) Minor
+G# (Ab) Minor
+Eb (D#) Minor
+Bb (A#) Minor
+F Minor
+C Minor
+G Minor
+D Minor
 
 """

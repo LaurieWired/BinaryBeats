@@ -382,6 +382,10 @@ file_type_mapping = {
 }
 
 note_names = list(note_frequencies.keys())
+
+# Default note ranges / bpm but will also be set below
+lowest_note = 'C3'
+highest_note = 'C5'
 bpm = 120
 
 # Duration of each beat in milliseconds
@@ -393,10 +397,6 @@ def get_note_name_from_ascii(ascii_char):
     
 def get_note_index(note_name):
     return list(note_frequencies.keys()).index(note_name)
-    
-# Default note range
-lowest_note = 'C3'
-highest_note = 'C5'
 
 def play_notes_from_file(file_path):
     print("Starting to play file...")
@@ -522,6 +522,32 @@ def play_frequency(frequency, duration=100):
     play_obj = wave_obj.play()
     play_obj.wait_done()
     
+def determine_bpm_based_on_file_size(file_path):
+    # Get the file size in bytes
+    file_size = os.path.getsize(file_path)
+    
+    # Define file size intervals in bytes and corresponding BPMs
+    size_intervals = [
+        (512_000, 60),           # Up to 500KB
+        (1_048_576, 80),         # 500KB to 1MB
+        (10_485_760, 100),       # 1MB to 10MB
+        (52_428_800, 120),       # 10MB to 50MB
+        (104_857_600, 140),      # 50MB to 100MB
+        (524_288_000, 160),      # 100MB to 500MB
+        (1_073_741_824, 180),    # 500MB to 1GB
+    ]
+    
+    # Default BPM for files larger than any specified intervals
+    default_bpm = 200
+    
+    # Determine the BPM based on the file size
+    for (max_size, bpm) in size_intervals:
+        if file_size <= max_size:
+            return bpm
+    
+    # If the file size exceeds all specified intervals, use the default BPM
+    return default_bpm
+    
 parser = argparse.ArgumentParser(description='Process a file to play its bytes as musical notes.')
 parser.add_argument('file_path', type=str, help='Path to the file to be processed')
 args = parser.parse_args()
@@ -597,6 +623,16 @@ else:
 # Default to a max range of 2 octaves
 file_entropy = calculate_file_entropy(file_path)
 print("File entropy: " + str(file_entropy))
+lowest_note = 'C3' #FIXME
+highest_note = 'C5'
+
+# Set the bpm based on file size
+# Bigger files play faster and smaller files play slower
+bpm = determine_bpm_based_on_file_size(file_path)
+print("BPM: " + str(bpm))
+
+# Reset the beat duration based off new bpm
+beat_duration_ms = int((60 / bpm) * 1000)
 
 play_notes_from_file(file_path)    
     

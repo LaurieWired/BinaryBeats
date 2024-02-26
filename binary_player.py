@@ -480,8 +480,6 @@ def calculate_file_entropy(file_path, sample_size=1024*1024):  # Default sample 
         else:
             data = file.read()  # Read the whole file if it's small enough
 
-    print("Calculating entropy...")
-
     # If the file or sample is empty, return 0 as the entropy
     if not data:
         return 0
@@ -548,6 +546,47 @@ def determine_bpm_based_on_file_size(file_path):
     # If the file size exceeds all specified intervals, use the default BPM
     return default_bpm
     
+def increment_octave(note, octaves):
+    # Assumes the note format is like 'C3', 'D#3', etc.
+    note_base = note[:-1]  # Note letter(s) without the octave
+    octave = int(note[-1])  # Current octave number
+    new_octave = octave + octaves  # New octave number
+    return note_base + str(new_octave)    
+        
+def set_note_range_based_on_entropy(entropy):
+    # Define entropy intervals and corresponding lowest notes
+    entropy_intervals = [
+        (1, 'C2'),  # Very low entropy
+        (2, 'D2'),  # Low entropy
+        (3, 'E2'),  
+        (4, 'F2'),  # Lower medium entropy
+        (5, 'G2'),  
+        (6, 'A2'),  # Higher medium entropy
+        (7, 'B2'),  
+        (8, 'C3'),  # Medium-high entropy
+        (9, 'D3'),  
+        (10, 'E3'), # High entropy
+        (11, 'F3'), 
+        (12, 'G3'), # Very high entropy
+        (13, 'A3'), 
+        (14, 'B3'), 
+        (15, 'C4'), # Extremely high entropy
+        (16, 'D4'), # Theoretical maximum for byte-based entropy
+    ]
+    
+    # The highest possible starting note given the constraints
+    default_lowest_note = 'C6'
+    
+    # Determine the lowest note based on the entropy, adjusted for more granular intervals
+    for (max_entropy, lowest_note) in entropy_intervals:
+        if entropy <= max_entropy:
+            highest_note = increment_octave(lowest_note, 2)  # Increment by 2 octaves to determine the highest note
+            return lowest_note, highest_note
+    
+    # If the entropy is off the charts, use the maximum allowed lowest note with its corresponding highest note
+    highest_note = increment_octave(default_lowest_note, 2)  # Increment by 2 octaves for the highest note
+    return default_lowest_note, highest_note
+
 parser = argparse.ArgumentParser(description='Process a file to play its bytes as musical notes.')
 parser.add_argument('file_path', type=str, help='Path to the file to be processed')
 args = parser.parse_args()
@@ -621,10 +660,10 @@ else:
 # Set the key range based on the entropy of the file
 # Higher entropy means higher range
 # Default to a max range of 2 octaves
-file_entropy = calculate_file_entropy(file_path)
-print("File entropy: " + str(file_entropy))
-lowest_note = 'C3' #FIXME
-highest_note = 'C5'
+entropy = calculate_file_entropy(file_path)
+print("File entropy: " + str(entropy))
+lowest_note, highest_note = set_note_range_based_on_entropy(entropy)
+print("Note range: " + lowest_note + " - " + highest_note)
 
 # Set the bpm based on file size
 # Bigger files play faster and smaller files play slower
